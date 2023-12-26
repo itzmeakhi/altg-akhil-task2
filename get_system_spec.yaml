@@ -1,0 +1,44 @@
+---
+- name: Get System Specifications for All Hosts
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Display CPU Information
+      debug:
+        var: ansible_processor
+      register: cpu_output
+
+    - name: Display Memory Information
+      debug:
+        var: ansible_memory_mb
+      register: memory_output
+
+    - name: Display Disk Size Information
+      debug:
+        var: ansible_mounts
+      register: disk_output
+
+    - name: Creates output directory in /etc/ansible/
+      ansible.builtin.file:
+        path: /etc/ansible/output
+        state: directory
+      delegate_to: localhost
+
+    - name: Save output to a single file for all hosts
+      ansible.builtin.copy:
+        content: |
+          {
+            {% for host in groups['all'] %}
+            "{{ host }}": {
+              "Host": {{ hostvars[host]['ansible_hostname'] }},
+              "CPU Information": {{ hostvars[host]['cpu_output']['ansible_processor'] | to_nice_json }},
+              "Memory Information": {{ hostvars[host]['memory_output']['ansible_memory_mb'] | to_nice_json }},
+              "Disk Size Information": {{ hostvars[host]['disk_output']['ansible_mounts'] | to_nice_json }}
+
+            },
+            {% endfor %}
+          }
+        dest: "/etc/ansible/output/out-get_sysspec_all_hosts.json"
+      delegate_to: localhost
