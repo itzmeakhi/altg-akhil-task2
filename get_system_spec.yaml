@@ -5,24 +5,45 @@
   gather_facts: yes
 
   tasks:
-    - name: Display CPU Information
-      debug:
-        var: ansible_processor
+    - name: Display CPU Usage
+      ansible.builtin.shell:
+        cmd: |
+          {% if 'linux' in ansible_os_family|lower %}
+          top -bn1 | grep 'Cpu(s)' | awk '{print $2 + $4}'
+          {% elif 'win' in ansible_os_family|lower %}
+          Get-Counter '\Processor(_Total)\% Processor Time' | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
+          {% else %}
+          echo "Unsupported OS"
+          {% endif %}
       register: cpu_output
 
     - name: Display Memory Information
-      debug:
-        var: ansible_memory_mb
+      ansible.builtin.shell:
+        cmd: |
+          {% if 'linux' in ansible_os_family|lower %}
+          free -m
+          {% elif 'win' in ansible_os_family|lower %}
+          Get-CimInstance Win32_OperatingSystem | Select-Object TotalVisibleMemorySize, FreePhysicalMemory
+          {% else %}
+          echo "Unsupported OS"
+          {% endif %}
       register: memory_output
 
     - name: Display Disk Size Information
-      debug:
-        var: ansible_mounts
+      ansible.builtin.shell:
+        cmd: |
+          {% if 'linux' in ansible_os_family|lower %}
+          df -h
+          {% elif 'win' in ansible_os_family|lower %}
+          Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID, Size, FreeSpace
+          {% else %}
+          echo "Unsupported OS"
+          {% endif %}
       register: disk_output
 
-    - name: Creates output directory in /etc/ansible/
+    - name: Creates output directory in /etc/ansible/ or c:\ansible\
       ansible.builtin.file:
-        path: /etc/ansible/output
+        path: "{{ '/etc/ansible/output' if 'linux' in ansible_os_family|lower else 'C:\\ansible\\output' }}"
         state: directory
       delegate_to: localhost
 
@@ -33,12 +54,11 @@
             {% for host in groups['all'] %}
             "{{ host }}": {
               "Host": {{ hostvars[host]['ansible_hostname'] }},
-              "CPU Information": {{ hostvars[host]['cpu_output']['ansible_processor'] | to_nice_json }},
-              "Memory Information": {{ hostvars[host]['memory_output']['ansible_memory_mb'] | to_nice_json }},
-              "Disk Size Information": {{ hostvars[host]['disk_output']['ansible_mounts'] | to_nice_json }}
-
+              "CPU Usage (%)": {{ cpu_output.stdout | float | round(2) }},
+              "Memory Information": "{% if 'linux' in ansible_os_family|lower %}{{ memory_output.stdout_lines[1].split()[1] }} used / {{ memory_output.stdout_lines[1].split()[2] }} free{% elif 'win' in ansible_os_family|lower %}{{ memory_output.TotalVisibleMemorySize }} used / {{ memory_output.FreePhysicalMemory }} free{% endif %}",
+              "Disk Size Information": "{% if 'linux' in ansible_os_family|lower %}{{ disk_output.stdout_lines[1] }}{% elif 'win' in ansible_os_family|lower %}{{ disk_output }}{% endif %}"
             },
             {% endfor %}
           }
-        dest: "/etc/ansible/output/out-get_sysspec_all_hosts.json"
+        dest: "{{ '/etc/ansible/output/out-get_sysspec_all_hosts.json' if 'linux' in ansible_os_family|lower else 'C:\\ansible\\output\\out-get_sysspec_all_hosts.json' }}"
       delegate_to: localhost
