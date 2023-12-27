@@ -1,7 +1,6 @@
 ---
 - name: Get System Specifications for All Hosts
   hosts: all
-  become: yes
   gather_facts: yes
 
   tasks:
