@@ -22,7 +22,7 @@
           {% if 'linux' in ansible_os_family|lower %}
           free -m
           {% elif 'win' in ansible_os_family|lower %}
-          Get-CimInstance Win32_OperatingSystem | Select-Object TotalVisibleMemorySize, FreePhysicalMemory
+          Get-CimInstance Win32_OperatingSystem | Select-Object TotalVisibleMemorySize, FreePhysicalMemory | ConvertTo-Json
           {% else %}
           echo "Unsupported OS"
           {% endif %}
@@ -34,17 +34,24 @@
           {% if 'linux' in ansible_os_family|lower %}
           df -h
           {% elif 'win' in ansible_os_family|lower %}
-          Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID, Size, FreeSpace
+          Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID, Size, FreeSpace | ConvertTo-Json
           {% else %}
           echo "Unsupported OS"
           {% endif %}
       register: disk_output
 
-    - name: Creates output directory in /etc/ansible/ or c:\ansible\
+    - name: Creates output directory
       ansible.builtin.file:
         path: "/etc/ansible/output"
         state: directory
       delegate_to: localhost
+      when: "'linux' in ansible_os_family|lower"
+
+    - name: Creates output directory
+      ansible.windows.win_shell:
+        cmd: New-Item -Path C:\ansible\output -ItemType Directory -Force
+      ignore_errors: yes
+      when: "'win' in ansible_os_family|lower"
 
     - name: Save output to a single file for all hosts
       ansible.builtin.copy:
@@ -54,10 +61,11 @@
             "{{ host }}": {
               "Host": "{{ hostvars[host]['ansible_hostname'] }}",
               "CPU Usage (%)": {{ cpu_output.stdout | float | round(2) }},
-              "Memory Information": "{% if 'linux' in ansible_os_family|lower %}{{ memory_output.stdout_lines[1].split()[1] }} used / {{ memory_output.stdout_lines[1].split()[2] }} free{% elif 'win' in ansible_os_family|lower %}{{ memory_output.TotalVisibleMemorySize }} used / {{ memory_output.FreePhysicalMemory }} free{% endif %}",
-              "Disk Size Information": "{% if 'linux' in ansible_os_family|lower %}{{ disk_output.stdout_lines[1] }}{% elif 'win' in ansible_os_family|lower %}{{ disk_output }}{% endif %}"
+              "Memory Information": {{ memory_output.stdout | to_nice_json }},
+              "Disk Size Information": {{ disk_output.stdout | to_nice_json }}
             }{% if not loop.last %},{% endif %}
             {% endfor %}
           }
         dest: "/etc/ansible/output/out-get_sysspec_all_hosts.json"
       delegate_to: localhost
+      when: "'linux' in ansible_os_family|lower"
