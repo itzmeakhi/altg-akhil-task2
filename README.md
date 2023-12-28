@@ -12,7 +12,7 @@ This Ansible playbook is designed to retrieve system specifications for all linu
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/your-username/your-repo.git
+   git clone https://github.com/itzmeakhi/altg-akhil-task2.git
    
 2. **Edit the hosts file:**
 
