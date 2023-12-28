@@ -27,11 +27,11 @@
           {
             {% for host in groups['all'] %}
             "{{ host }}": {
-              "Host": {{ hostvars[host]['ansible_hostname'] }},
+              "Host": "{{ hostvars[host]['ansible_hostname'] }}",
               "CPU Usage (%)": {{ cpu_output.stdout | float | round(2) }},
-              "Memory Information": {{ memory_output.stdout | to_nice_json }},
-              "Disk Size Information": {{ disk_output.stdout | to_nice_json }}
-            },
+              "Memory Information": "\n{{ memory_output.stdout }}",
+              "Disk Size Information": "\n{% for line in disk_output.stdout_lines %}{{ line }}\n{% endfor %}"
+            }{% if not loop.last %},{% endif %}
             {% endfor %}
           }
         dest: /etc/ansible/output/out-get_sysspec_all_hosts.json
