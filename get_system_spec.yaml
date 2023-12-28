@@ -62,4 +62,5 @@
             {% endfor %}
           }
         dest: "{{ '/etc/ansible/output/out-get_sysspec_all_hosts.json' }}"
+        remote_src: no  # Skip checking remote file information
       delegate_to: localhost
