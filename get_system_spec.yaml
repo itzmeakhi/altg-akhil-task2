@@ -29,8 +29,8 @@
             "{{ host }}": {
               "Host": {{ hostvars[host]['ansible_hostname'] }},
               "CPU Usage (%)": {{ cpu_output.stdout | float | round(2) }},
-              "Memory Information": \n{{ memory_output.stdout }},
-              "Disk Size Information": \n{{ \n disk_output.stdout }}
+              "Memory Information": "\n{{ memory_output.stdout }}",
+              "Disk Size Information": "\n{{ \n disk_output.stdout }}"
             },
             {% endfor %}
           }
