@@ -3,19 +3,18 @@
   hosts: all
   gather_facts: yes
   vars:
-    ansible_python_interpreter: C:\Windows\py.exe
+    ansible_python_interpreter: "C:\\Windows\\py.exe"
 
   tasks:
     - name: Display CPU Usage
-      ansible.builtin.shell:
-        cmd: |
-          {% if 'linux' in ansible_os_family|lower %}
-          top -bn1 | grep 'Cpu(s)' | awk '{print $2 + $4}'
-          {% elif 'win' in ansible_os_family|lower %}
-          Get-Counter '\Processor(_Total)\% Processor Time' | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
-          {% else %}
-          echo "Unsupported OS"
-          {% endif %}
+      ansible.builtin.shell: |
+        {% if 'linux' in ansible_os_family|lower %}
+        top -bn1 | grep 'Cpu(s)' | awk '{print $2 + $4}'
+        {% elif 'win' in ansible_os_family|lower %}
+        Get-Counter '\Processor(_Total)\% Processor Time' | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
+        {% else %}
+        echo "Unsupported OS"
+        {% endif %}
       register: cpu_output
 
     - name: Display Memory Information
