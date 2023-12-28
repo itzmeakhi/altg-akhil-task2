@@ -42,7 +42,7 @@
 
     - name: Creates output directory in /etc/ansible/ or c:\ansible\
       ansible.builtin.file:
-        path: /etc/ansible/output
+        path: "/etc/ansible/output"
         state: directory
       delegate_to: localhost
 
@@ -52,11 +52,11 @@
           {
             {% for host in groups['all'] %}
             "{{ host }}": {
-              "Host": {{ hostvars[host]['ansible_hostname'] }},
+              "Host": "{{ hostvars[host]['ansible_hostname'] }}",
               "CPU Usage (%)": {{ cpu_output.stdout | float | round(2) }},
               "Memory Information": "{% if 'linux' in ansible_os_family|lower %}{{ memory_output.stdout_lines[1].split()[1] }} used / {{ memory_output.stdout_lines[1].split()[2] }} free{% elif 'win' in ansible_os_family|lower %}{{ memory_output.TotalVisibleMemorySize }} used / {{ memory_output.FreePhysicalMemory }} free{% endif %}",
               "Disk Size Information": "{% if 'linux' in ansible_os_family|lower %}{{ disk_output.stdout_lines[1] }}{% elif 'win' in ansible_os_family|lower %}{{ disk_output }}{% endif %}"
-            },
+            }{% if not loop.last %},{% endif %}
             {% endfor %}
           }
         dest: "/etc/ansible/output/out-get_sysspec_all_hosts.json"
