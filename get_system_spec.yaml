@@ -42,13 +42,13 @@
       register: disk_output
       when: "'win' not in ansible_os_family|lower"  # Run only on Linux hosts
 
-    - name: Creates output directory in /etc/ansible/ or c:\ansible\
+    - name: Creates output directory in /etc/ansible/ or c:\ansible\ on localhost
       ansible.builtin.file:
         path: /etc/ansible/output
         state: directory
-      delegate_to: localhost
+      run_once: true
 
-    - name: Save output to a single file for all hosts
+    - name: Save output to a single file for all hosts on localhost
       ansible.builtin.copy:
         content: |
           {
@@ -61,6 +61,5 @@
             }{% if not loop.last %},{% endif %}
             {% endfor %}
           }
-        dest: "~/output/out-get_sysspec_all_hosts.json"
-        remote_src: no  # Skip checking remote file information
-      delegate_to: localhost
+        dest: "/etc/ansible/output/out-get_sysspec_all_hosts.json"
+      run_once: true
