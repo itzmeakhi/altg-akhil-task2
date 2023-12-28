@@ -2,6 +2,8 @@
 - name: Get System Specifications for All Hosts
   hosts: all
   gather_facts: yes
+  vars:
+    ansible_python_interpreter: C:\Windows\py.exe
 
   tasks:
     - name: Display CPU Usage
