@@ -44,7 +44,7 @@
 
     - name: Creates output directory in /etc/ansible/ or c:\ansible\
       ansible.builtin.file:
-        path: "{{ '/etc/ansible/output' if 'linux' in ansible_os_family|lower else 'C:\\ansible\\output' }}"
+        path: /etc/ansible/output
         state: directory
       delegate_to: localhost
 
@@ -61,5 +61,5 @@
             },
             {% endfor %}
           }
-        dest: "{{ '/etc/ansible/output/out-get_sysspec_all_hosts.json' if 'linux' in ansible_os_family|lower else 'C:\\ansible\\output\\out-get_sysspec_all_hosts.json' }}"
+        dest: "{{ '/etc/ansible/output/out-get_sysspec_all_hosts.json' }}"
       delegate_to: localhost
