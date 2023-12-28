@@ -1,20 +1,21 @@
 ---
 - name: Get System Specifications for All Hosts
   hosts: all
+  become: yes
   gather_facts: yes
 
   tasks:
     - name: Display CPU Usage
-      ansible.builtin.shell: |
-        {% if 'linux' in ansible_os_family|lower %}
-        top -bn1 | grep 'Cpu(s)' | awk '{print $2 + $4}'
-        {% elif 'win' in ansible_os_family|lower %}
-        Get-Counter '\Processor(_Total)\% Processor Time' | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
-        {% else %}
-        echo "Unsupported OS"
-        {% endif %}
+      ansible.builtin.shell:
+        cmd: |
+          {% if 'linux' in ansible_os_family|lower %}
+          top -bn1 | grep 'Cpu(s)' | awk '{print $2 + $4}'
+          {% elif 'win' in ansible_os_family|lower %}
+          Get-Counter '\Processor(_Total)\% Processor Time' | Select-Object -ExpandProperty CounterSamples | Select-Object -ExpandProperty CookedValue
+          {% else %}
+          echo "Unsupported OS"
+          {% endif %}
       register: cpu_output
-      when: "'win' not in ansible_os_family|lower"  # Run only on Linux hosts
 
     - name: Display Memory Information
       ansible.builtin.shell:
@@ -27,7 +28,6 @@
           echo "Unsupported OS"
           {% endif %}
       register: memory_output
-      when: "'win' not in ansible_os_family|lower"  # Run only on Linux hosts
 
     - name: Display Disk Size Information
       ansible.builtin.shell:
@@ -40,26 +40,25 @@
           echo "Unsupported OS"
           {% endif %}
       register: disk_output
-      when: "'win' not in ansible_os_family|lower"  # Run only on Linux hosts
 
-    - name: Creates output directory in /etc/ansible/ or c:\ansible\ on localhost
+    - name: Creates output directory in /etc/ansible/ or c:\ansible\
       ansible.builtin.file:
         path: /etc/ansible/output
         state: directory
-      run_once: true
+      delegate_to: localhost
 
-    - name: Save output to a single file for all hosts on localhost
+    - name: Save output to a single file for all hosts
       ansible.builtin.copy:
         content: |
           {
             {% for host in groups['all'] %}
             "{{ host }}": {
-              "Host": "{{ hostvars[host]['ansible_hostname'] }}",
-              "CPU Usage (%)": {% if 'win' not in ansible_os_family|lower %}{{ cpu_output.stdout | float | round(2) }}{% else %}"N/A"{% endif %},
-              "Memory Information": "{% if 'linux' in ansible_os_family|lower %}{{ memory_output.stdout_lines[1].split()[1] }} used / {{ memory_output.stdout_lines[1].split()[2] }} free{% elif 'win' in ansible_os_family|lower and memory_output.TotalVisibleMemorySize is defined %}{{ memory_output.TotalVisibleMemorySize }} used / {{ memory_output.FreePhysicalMemory }} free{% else %}"N/A"{% endif %}",
-              "Disk Size Information": {% if 'linux' in ansible_os_family|lower %}"{{ disk_output.stdout_lines[1] }}"{% elif 'win' in ansible_os_family|lower %}"N/A"{% else %}"N/A"{% endif %}
-            }{% if not loop.last %},{% endif %}
+              "Host": {{ hostvars[host]['ansible_hostname'] }},
+              "CPU Usage (%)": {{ cpu_output.stdout | float | round(2) }},
+              "Memory Information": "{% if 'linux' in ansible_os_family|lower %}{{ memory_output.stdout_lines[1].split()[1] }} used / {{ memory_output.stdout_lines[1].split()[2] }} free{% elif 'win' in ansible_os_family|lower %}{{ memory_output.TotalVisibleMemorySize }} used / {{ memory_output.FreePhysicalMemory }} free{% endif %}",
+              "Disk Size Information": "{% if 'linux' in ansible_os_family|lower %}{{ disk_output.stdout_lines[1] }}{% elif 'win' in ansible_os_family|lower %}{{ disk_output }}{% endif %}"
+            },
             {% endfor %}
           }
         dest: "/etc/ansible/output/out-get_sysspec_all_hosts.json"
-      run_once: true
+      delegate_to: localhost
