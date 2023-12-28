@@ -5,22 +5,22 @@
   gather_facts: yes
 
   tasks:
-    - name: Display CPU Information
-      debug:
-        var: ansible_processor
+    - name: Display CPU Usage
+      ansible.builtin.shell:
+        cmd: "top -bn1 | grep 'Cpu(s)' | awk '{print $2 + $4}'"
       register: cpu_output
 
     - name: Display Memory Information
-      debug:
-        var: ansible_memory_mb
+      ansible.builtin.shell:
+        cmd: "free -m"
       register: memory_output
 
     - name: Display Disk Size Information
-      debug:
-        var: ansible_mounts
+      ansible.builtin.shell:
+        cmd: "df -h"
       register: disk_output
 
-    - name: Creates output directory in /etc/ansible/
+    - name: Creates output directory in /etc/ansible/ or c:\ansible\
       ansible.builtin.file:
         path: /etc/ansible/output
         state: directory
@@ -33,10 +33,9 @@
             {% for host in groups['all'] %}
             "{{ host }}": {
               "Host": {{ hostvars[host]['ansible_hostname'] }},
-              "CPU Information": {{ hostvars[host]['cpu_output']['ansible_processor'] | to_nice_json }},
-              "Memory Information": {{ hostvars[host]['memory_output']['ansible_memory_mb'] | to_nice_json }},
-              "Disk Size Information": {{ hostvars[host]['disk_output']['ansible_mounts'] | to_nice_json }}
-
+              "CPU Usage (%)": {{ cpu_output.stdout | float | round(2) }},
+              "Memory Information": "{{ memory_output.stdout_lines[1].split()[1] }} used / {{ memory_output.stdout_lines[1].split()[2] }} free",
+              "Disk Size Information": "{{ disk_output.stdout_lines[1] }}"
             },
             {% endfor %}
           }
