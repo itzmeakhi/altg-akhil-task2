@@ -54,13 +54,13 @@
           {
             {% for host in groups['all'] %}
             "{{ host }}": {
-              "Host": {{ hostvars[host]['ansible_hostname'] }},
+              "Host": "{{ hostvars[host]['ansible_hostname'] }}",
               "CPU Usage (%)": {% if 'win' not in ansible_os_family|lower %}{{ cpu_output.stdout | float | round(2) }}{% else %}"N/A"{% endif %},
               "Memory Information": "{% if 'linux' in ansible_os_family|lower %}{{ memory_output.stdout_lines[1].split()[1] }} used / {{ memory_output.stdout_lines[1].split()[2] }} free{% elif 'win' in ansible_os_family|lower and memory_output.TotalVisibleMemorySize is defined %}{{ memory_output.TotalVisibleMemorySize }} used / {{ memory_output.FreePhysicalMemory }} free{% else %}"N/A"{% endif %}",
-              "Disk Size Information": "{% if 'linux' in ansible_os_family|lower %}{{ disk_output.stdout_lines[1] }}{% elif 'win' in ansible_os_family|lower %}{{ disk_output }}{% else %}"N/A"{% endif %}"
-            },
+              "Disk Size Information": {% if 'linux' in ansible_os_family|lower %}"{{ disk_output.stdout_lines[1] }}"{% elif 'win' in ansible_os_family|lower %}"N/A"{% else %}"N/A"{% endif %}
+            }{% if not loop.last %},{% endif %}
             {% endfor %}
           }
-        dest: "{{ '/etc/ansible/output/out-get_sysspec_all_hosts.json' }}"
+        dest: "~/output/out-get_sysspec_all_hosts.json"
         remote_src: no  # Skip checking remote file information
       delegate_to: localhost
