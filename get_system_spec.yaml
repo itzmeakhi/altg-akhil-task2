@@ -3,41 +3,40 @@
   hosts: all
   become: yes
   gather_facts: yes
-
   tasks:
     - name: Display CPU Usage
       ansible.builtin.shell:
-        cmd: "top -bn1 | grep 'Cpu(s)' | awk '{print $2 + $4}'"
+        cmd: top -bn1 | grep 'Cpu(s)' | awk '{print $2 + $4}'
       register: cpu_output
-
     - name: Display Memory Information
       ansible.builtin.shell:
-        cmd: "free -m"
+        cmd: free -m
       register: memory_output
-
     - name: Display Disk Size Information
       ansible.builtin.shell:
-        cmd: "df -h"
+        cmd: df -h
       register: disk_output
-
     - name: Creates output directory in /etc/ansible/ or c:\ansible\
       ansible.builtin.file:
         path: /etc/ansible/output
         state: directory
       delegate_to: localhost
-
     - name: Save output to a single file for all hosts
       ansible.builtin.copy:
-        content: |
+        content: >
           {
             {% for host in groups['all'] %}
             "{{ host }}": {
               "Host": {{ hostvars[host]['ansible_hostname'] }},
               "CPU Usage (%)": {{ cpu_output.stdout | float | round(2) }},
               "Memory Information": "{{ memory_output.stdout_lines[1].split()[1] }} used / {{ memory_output.stdout_lines[1].split()[2] }} free / {{ memory_output.stdout_lines[1].split()[5] }} available",
-              "Disk Size Information": "{{ disk_output.stdout_lines[1] }}"
+              "Disk Size Information": [
+            {% for line in disk_output.stdout_lines[1:] %}
+              "{{ line }}"{% if not loop.last %},{% endif %}
+            {% endfor %}
+          ]
             },
             {% endfor %}
           }
-        dest: "/etc/ansible/output/out-get_sysspec_all_hosts.json"
+        dest: /etc/ansible/output/out-get_sysspec_all_hosts.json
       delegate_to: localhost

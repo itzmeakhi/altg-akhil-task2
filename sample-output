@@ -1,14 +1,14 @@
 {
     "host1": {
-    "Host": ip-172-31-26-38,
+    "Host": "ip-172-31-26-38",
     "CPU Usage (%)": 6.2,
     "Memory Information": "952 used / 77 free",
     "Disk Size Information": "devtmpfs        468M     0  468M   0% /dev"
   },
     "host2": {
-    "Host": ip-172-31-21-254,
+    "Host": "ip-172-31-21-254",
     "CPU Usage (%)": 6.2,
     "Memory Information": "952 used / 77 free",
     "Disk Size Information": "devtmpfs        468M     0  468M   0% /dev"
-  },
+  }
   }
